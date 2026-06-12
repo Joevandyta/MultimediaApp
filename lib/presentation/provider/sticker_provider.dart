@@ -21,35 +21,24 @@ class SavedStickers extends _$SavedStickers {
     return await usecase.getStickerById(id);
   }
 
-  Future<StickerModel> saveNewSticker(Uint8List bytes) async {
+  Future<StickerModel> saveNewSticker(Uint8List bytes, String extension) async {
     final usecase = await ref.read(stickerUseCaseProvider.future);
-    final sticker = await usecase.saveStickerBytes(bytes);
-    ref.invalidateSelf();
+    final sticker = await usecase.saveSticker(bytes, extension);
+    if (ref.mounted) ref.invalidateSelf(); 
     return sticker;
   }
 
-  Future<void> toggleSaved(StickerModel sticker) async {
+  Future<void> updateSticker(String savedStickerId, Uint8List bytes) async {
     final usecase = await ref.read(stickerUseCaseProvider.future);
-    final isSaved = await usecase.isStickerSaved(sticker.savedStickerId);
-
-    if (isSaved) {
-      await usecase.deleteSticker(sticker.savedStickerId);
-    } else {
-      await usecase.saveSticker(sticker);
-    }
-
-    ref.invalidateSelf();
+    await usecase.updateSticker(savedStickerId, bytes);
+    if (ref.mounted) ref.invalidateSelf(); 
   }
 
   Future<void> removeSticker(String savedStickerId) async {
     final usecase = await ref.read(stickerUseCaseProvider.future);
 
     await usecase.deleteSticker(savedStickerId);
-
-    final currentState = state.value ?? [];
-    state = AsyncData(
-      currentState.where((s) => s.savedStickerId != savedStickerId).toList(),
-    );
+    if (ref.mounted) ref.invalidateSelf(); 
   }
 }
 

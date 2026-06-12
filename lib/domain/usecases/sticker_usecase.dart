@@ -16,16 +16,16 @@ class StickerUseCase {
     return repository.getSavedStickers();
   }
 
-  Future<StickerModel> saveStickerBytes(Uint8List bytes) {
-    return repository.saveStickerBytes(bytes);
+  Future<StickerModel> saveSticker(Uint8List bytes, String extension) {
+    return repository.saveSticker(bytes, extension);
   }
 
-  Future<void> saveSticker(StickerModel sticker) {
-    return repository.saveSticker(sticker);
+  Future<void> updateSticker(String savedStickerId, Uint8List bytes) {
+    return repository.updateSticker(savedStickerId, bytes);
   }
 
-  Future<void> deleteSticker(String id) {
-    return repository.deleteSticker(id);
+  Future<void> deleteSticker(String savedStickerId) {
+    return repository.deleteSticker(savedStickerId);
   }
 
   Future<bool> isStickerSaved(String id) {

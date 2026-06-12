@@ -1,19 +1,24 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_pickers/image_pickers.dart';
+import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/presentation/provider/sticker_provider.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
+import 'package:whatsapp_stickers_injector/exceptions.dart';
 import '../../data/models/sticker_model.dart';
 import '../widgets/picker_option.dart';
 import '../widgets/share_bar.dart';
 import '../widgets/image_preview_card.dart';
 import '../widgets/delete_confirm_modal.dart';
+
+enum _PendingAction { none, save, update, delete }
 
 class StickerEditorScreen extends ConsumerStatefulWidget {
   final StickerModel? initialSticker;
@@ -28,10 +33,13 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
   File? _selectedImages;
   final bool _isProcessing = false;
   bool _isSharing = false;
-  bool _isSaving = false;
   String? _currentSavedStickerId;
-  StickerModel? _lastGeneratedSticker;
-
+  // StickerModel? _currentSticker;
+  bool _toggleSaveActive = false;
+  bool _isInitialStickerSaved = false;
+  bool _anyChanges = false;
+  _PendingAction _pendingAction = _PendingAction.none;
+  Key _imageKey = UniqueKey();
   late AnimationController _pulseController;
   late AnimationController _slideController;
   late Animation<double> _pulseAnimation;
@@ -62,7 +70,9 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
     if (widget.initialSticker != null) {
       _selectedImages = File(widget.initialSticker!.imagePath);
       _currentSavedStickerId = widget.initialSticker!.savedStickerId;
-      _lastGeneratedSticker = widget.initialSticker;
+      // _currentSticker = widget.initialSticker;
+      _toggleSaveActive = true;
+      _isInitialStickerSaved = true;
       _slideController.value = 1.0;
     }
   }
@@ -76,159 +86,243 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0F0D),
-      body: Stack(
-        children: [
-          // Background decorative circles
-          Positioned(
-            top: -80,
-            right: -60,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF25D366).withValues(alpha: 0.15),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 120,
-            left: -80,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    const Color(0xFF128C7E).withValues(alpha: 0.12),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Main content
-          SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 24, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        icon: const Icon(
-                          Icons.arrow_back_ios,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      Spacer(),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'WA Sticker Maker',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          Text(
-                            'Buat stiker WhatsApp mu sendiri',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white.withValues(alpha: 0.45),
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 14),
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF25D366,
-                          ).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(
-                              0xFF25D366,
-                            ).withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.sticky_note_2_rounded,
-                          color: Color(0xFF25D366),
-                          size: 22,
-                        ),
-                      ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop) return;
+        await _flushPendingAction();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0A0F0D),
+        body: Stack(
+          children: [
+            // Background decorative circles
+            Positioned(
+              top: -80,
+              right: -60,
+              child: Container(
+                width: 260,
+                height: 260,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF25D366).withValues(alpha: 0.15),
+                      Colors.transparent,
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // Image area
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _selectedImages == null
-                        ? _emptyImageCard()
-                        : _buildImagesPreview(),
+              ),
+            ),
+            Positioned(
+              bottom: 120,
+              left: -80,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF128C7E).withValues(alpha: 0.12),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 100), // space for FAB
-              ],
+              ),
             ),
-          ),
-        ],
-      ),
 
-      // Floating bottom share bar
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 400),
-        child: _selectedImages != null
-            ? ShareBar(
-                key: const ValueKey('share_bar'),
-                onShare: _shareAsSticker,
-                onSave: _toggleSaveSticker,
-                isSharing: _isSharing,
-                isSaving: _isSaving,
-                isSaved:
-                    ref
-                        .watch(savedStickersProvider)
-                        .value
-                        ?.any(
-                          (s) => s.savedStickerId == _currentSavedStickerId,
-                        ) ??
-                    false,
-              )
-            : const SizedBox.shrink(key: ValueKey('empty')),
+            // Main content
+            SafeArea(
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 24, 0),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_ios,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        Spacer(),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'WA Sticker Maker',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            Text(
+                              'Buat stiker WhatsApp mu sendiri',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.45),
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 14),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF25D366,
+                            ).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(
+                                0xFF25D366,
+                              ).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.sticky_note_2_rounded,
+                            color: Color(0xFF25D366),
+                            size: 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // Image area
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _selectedImages == null
+                          ? _emptyImageCard()
+                          : _buildImagesPreview(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 100), // space for FAB
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        // Floating bottom share bar
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          child: _selectedImages != null
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _anyChanges && !_toggleSaveActive
+                          ? Container(
+                              key: const ValueKey('warning'),
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF25D366,
+                                ).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(
+                                    0xFF25D366,
+                                  ).withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    color: Color(0xFF25D366),
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Perubahan belum disimpan',
+                                    style: TextStyle(
+                                      color: Color(0xFF25D366),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : const SizedBox.shrink(key: ValueKey('no_warning')),
+                    ),
+                    const SizedBox(height: 4),
+                    ShareBar(
+                      key: const ValueKey('share_bar'),
+                      onShare: _shareAsSticker,
+                      onSave: _toggleSaveSticker,
+                      isSharing: _isSharing,
+                      isSaving: false,
+                      isSaved: _toggleSaveActive,
+                    ),
+                  ],
+                )
+              : const SizedBox.shrink(key: ValueKey('empty')),
+        ),
       ),
     );
   }
 
+  Future<void> _flushPendingAction() async {
+    if (_selectedImages == null && _pendingAction != _PendingAction.delete)
+      return;
+
+    switch (_pendingAction) {
+      case _PendingAction.save:
+        final bytes = await _processStickerImage(_selectedImages!);
+        if (bytes == null) return;
+        final ext = _selectedImages!.path.split('.').last.toLowerCase();
+        await ref
+            .read(savedStickersProvider.notifier)
+            .saveNewSticker(bytes, ext);
+
+      case _PendingAction.update:
+        if (_currentSavedStickerId == null) return;
+        final bytes = await _processStickerImage(_selectedImages!);
+        if (bytes == null) return;
+        await ref
+            .read(savedStickersProvider.notifier)
+            .updateSticker(_currentSavedStickerId!, bytes);
+
+      case _PendingAction.delete:
+        if (_currentSavedStickerId != null) {
+          await ref
+              .read(savedStickersProvider.notifier)
+              .removeSticker(_currentSavedStickerId!);
+        }
+        try {
+          await _selectedImages?.delete();
+        } catch (_) {}
+
+      case _PendingAction.none:
+        break;
+    }
+  }
+
   Widget _buildImagesPreview() {
     return ImagePreviewCard(
+      key: _imageKey,
       image: _selectedImages!,
       slideAnimation: _slideAnimation,
       onReplace: _showPickerDialog,
@@ -244,6 +338,8 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
 
   Future _openEditor(File imageFile) async {
     if (!mounted) return;
+
+    final String extension = imageFile.path.split('.').last.toLowerCase();
     final customStickers = <File>[];
     await Navigator.push(
       context,
@@ -254,18 +350,31 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
             onImageEditingComplete: (Uint8List bytes) async {
               final tempDir = await getTemporaryDirectory();
               final editedFile = File(
-                '${tempDir.path}/edited_${DateTime.now().millisecondsSinceEpoch}.png',
+                '${tempDir.path}/edited_${DateTime.now().millisecondsSinceEpoch}.$extension',
               );
               await editedFile.writeAsBytes(bytes);
               if (!mounted) return;
               Navigator.pop(context);
+              // If user was about to delete but chose to edit instead, reset to update
 
               setState(() {
                 _selectedImages = editedFile;
-                _currentSavedStickerId = null;
-                _lastGeneratedSticker = null;
+                _toggleSaveActive = false;
+                _anyChanges = true;
+                _imageKey = UniqueKey();
+                // apply the pendingAction changes above
               });
 
+              if (_pendingAction == _PendingAction.delete) {
+                _pendingAction = _isInitialStickerSaved
+                    ? _PendingAction.update
+                    : _PendingAction.save;
+              }
+              // If already saved, mark for update
+              if (_isInitialStickerSaved &&
+                  _pendingAction == _PendingAction.none) {
+                _pendingAction = _PendingAction.update;
+              }
               _slideController.forward(from: 0);
               HapticFeedback.mediumImpact();
             },
@@ -444,73 +553,111 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
     setState(() => _isSharing = true);
 
     try {
-      final tempDir = await getTemporaryDirectory();
+      final appDir = await getTemporaryDirectory();
+      final stickersDirectory = Directory('${appDir.path}/stickers');
+      await stickersDirectory.create(recursive: true);
+      final trayPath = '${stickersDirectory.path}/tray_123.png';
 
       final bytes = await _selectedImages!.readAsBytes();
+      final decoded = img.decodeImage(bytes)!;
+      // Make canvas size = the longer side
+      final size = decoded.width > decoded.height
+          ? decoded.width
+          : decoded.height;
+      final padded = img.Image(
+        width: size,
+        height: size,
+      ); // transparent by default
 
-      final decoded = img.decodeImage(bytes);
-      if (decoded == null) {
-        throw Exception('Gagal decode gambar');
+      // Center the original image on the canvas
+      final offsetX = (size - decoded.width) ~/ 2;
+      final offsetY = (size - decoded.height) ~/ 2;
+      img.compositeImage(padded, decoded, dstX: offsetX, dstY: offsetY);
+
+      final paddedFile = File('${stickersDirectory.path}/padded_.png');
+      await paddedFile.writeAsBytes(img.encodePng(padded));
+
+      final trayImage = await FlutterImageCompress.compressAndGetFile(
+        paddedFile.path,
+        trayPath,
+        format: CompressFormat.png,
+        quality: 100,
+        minWidth: 96,
+        minHeight: 96,
+      );
+      if (trayImage == null) throw Exception('Failed to create tray image');
+
+      final stickerImage = <XFile>[];
+      for (int i = 0; i < 5; i++) {
+        final sticker = await FlutterImageCompress.compressAndGetFile(
+          paddedFile.path,
+          '${stickersDirectory.path}/sticker_$i.webp',
+          format: CompressFormat.webp,
+          quality: 80,
+          minWidth: 512,
+          minHeight: 512,
+        );
+        stickerImage.add(sticker!);
       }
 
-      final resized = img.copyResize(decoded, width: 512);
-
-      final file = File(
-        '${tempDir.path}/sticker_${DateTime.now().millisecondsSinceEpoch}.png',
+      final stickerFiles = <String, List<String>>{
+        stickerImage[0].path: ['☕', '🙂'],
+        stickerImage[1].path: ['😄', '😀'],
+        stickerImage[2].path: ['😆', '😂'],
+        stickerImage[3].path: ['🧏‍♂️', '😂'],
+        stickerImage[4].path: ['🙏', '🧏‍♂️'],
+      };
+      final stickerPack = StickerPack(
+        identifier: 'cuppyFlutterWhatsAppStickers',
+        name: 'StickerPack',
+        publisher: 'Multimedia Sticker Maker',
+        trayImagePath: trayImage.path,
+        publisherWebsite: '',
+        privacyPolicyWebsite: '',
+        licenseAgreementWebsite: '',
       );
-
-      await file.writeAsBytes(img.encodePng(resized));
-
-      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
-    } catch (e) {
-      _showSnack('Gagal share sticker: $e', isError: true);
+      stickerFiles.forEach((path, emoji) {
+        stickerPack.addSticker(StickerModel.fromFile(File(path)), emoji);
+      });
+      await stickerPack.shareToWhatsApp();
+      _showSnack('Sticker berhasil dikirim ke WhatsApp!');
+    } on WhatsappStickersException catch (e) {
+      debugPrint('WhatsappStickersException: ${e.cause}');
+      _showSnack(e.cause.toString(), isError: true);
+    } catch (e, st) {
+      debugPrint('Error: $e\n$st');
+      _showSnack('Gagal: $e', isError: true);
     } finally {
       setState(() => _isSharing = false);
     }
   }
 
-  Future _toggleSaveSticker() async {
+  Future<void> _toggleSaveSticker() async {
     if (_selectedImages == null) return;
-
-    setState(() => _isSaving = true);
     HapticFeedback.mediumImpact();
 
-    try {
-      // If we already have a saved sticker ID, just toggle it
-      if (_currentSavedStickerId != null && _lastGeneratedSticker != null) {
-        await ref
-            .read(savedStickersProvider.notifier)
-            .toggleSaved(_lastGeneratedSticker!);
-        final isSaved =
-            ref
-                .read(savedStickersProvider)
-                .value
-                ?.any((s) => s.savedStickerId == _currentSavedStickerId) ??
-            false;
-        _showSnack(isSaved ? '✅ Stiker disimpan!' : '🗑️ Stiker dihapus');
-        return;
-      }
-
-      // Otherwise, process and save for the first time
-      final Uint8List? stickerBytes = await _processStickerImage(
-        _selectedImages!,
-      );
-      if (stickerBytes == null) throw Exception('Gagal memproses gambar');
-
-      final lastSticker = await ref
-          .read(savedStickersProvider.notifier)
-          .saveNewSticker(stickerBytes);
-
+    if (!_toggleSaveActive) {
+      // Will save or update on exit
+      final action = _isInitialStickerSaved
+          ? _PendingAction.update
+          : _PendingAction.save;
       setState(() {
-        _currentSavedStickerId = lastSticker.savedStickerId;
-        _lastGeneratedSticker = lastSticker;
+        _pendingAction = action;
+        _toggleSaveActive = true;
+        _anyChanges = false;
       });
-
-      _showSnack('✅ Stiker disimpan ke koleksi!');
-    } catch (e) {
-      _showSnack('Gagal memproses stiker: $e', isError: true);
-    } finally {
-      setState(() => _isSaving = false);
+      _showSnack(
+        _isInitialStickerSaved
+            ? '✏️ Perubahan akan disimpan saat keluar'
+            : '💾 Akan disimpan saat keluar',
+      );
+    } else {
+      // Will delete on exit
+      setState(() {
+        _pendingAction = _PendingAction.delete;
+        _toggleSaveActive = false;
+      });
+      _showSnack('🗑️ Akan dihapus saat keluar');
     }
   }
 
@@ -574,7 +721,13 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
                         setState(() {
                           _selectedImages = file;
                           _currentSavedStickerId = null;
-                          _lastGeneratedSticker = null;
+                          // _currentSticker = null;
+                          if (_toggleSaveActive) {
+                            _anyChanges = true;
+                          }
+                          _toggleSaveActive = false;
+                          _isInitialStickerSaved = false;
+                          _pendingAction = _PendingAction.none;
                         });
 
                         _slideController.forward(from: 0);
@@ -596,7 +749,13 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
                         setState(() {
                           _selectedImages = file;
                           _currentSavedStickerId = null;
-                          _lastGeneratedSticker = null;
+                          // _currentSticker = null;
+                          if (_toggleSaveActive) {
+                            _anyChanges = true;
+                          }
+                          _toggleSaveActive = false;
+                          _isInitialStickerSaved = false;
+                          _pendingAction = _PendingAction.none;
                         });
 
                         _slideController.forward(from: 0);

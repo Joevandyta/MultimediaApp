@@ -21,13 +21,13 @@ class StickerRepositoryImpl implements StickerRepository {
   }
 
   @override
-  Future<StickerModel> saveStickerBytes(Uint8List bytes) async {
-    return await localDataSource.saveStickerBytes(bytes);
+  Future<StickerModel> saveSticker(Uint8List bytes, String extension) async {
+    return await localDataSource.saveSticker(bytes, extension);
   }
 
   @override
-  Future<void> saveSticker(StickerModel sticker) async {
-    await localDataSource.saveSticker(sticker);
+  Future<void> updateSticker(String savedStickerId, Uint8List bytes) async {
+    await localDataSource.updateSticker(savedStickerId, bytes);
   }
 
   @override

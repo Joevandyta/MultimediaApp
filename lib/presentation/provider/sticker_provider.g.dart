@@ -33,7 +33,7 @@ final class SavedStickersProvider
   SavedStickers create() => SavedStickers();
 }
 
-String _$savedStickersHash() => r'2971493d6f29994771aa9d65cd059f78edfd5aad';
+String _$savedStickersHash() => r'654427ca1a0107702f6a8270f3c25fcc852cbc84';
 
 abstract class _$SavedStickers extends $AsyncNotifier<List<StickerModel>> {
   FutureOr<List<StickerModel>> build();

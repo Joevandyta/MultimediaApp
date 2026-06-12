@@ -46,7 +46,8 @@ dependencies:
   isar_community: ^3.3.2
   isar_community_flutter_libs: ^3.3.2
   pro_image_editor: ^12.4.5
-
+  flutter_image_compress:
+  whatsapp_stickers_injector: ^1.1.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

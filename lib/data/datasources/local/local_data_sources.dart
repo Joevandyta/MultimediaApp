@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'dart:typed_data';
-import 'package:path_provider/path_provider.dart';
+import 'package:multimedia_sticker_maker/core/services/Image_file.dart';
 import 'package:uuid/uuid.dart';
 import 'package:isar_community/isar.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
@@ -21,51 +20,77 @@ class LocalDataSource {
     return await isar.stickerModels.where().findAll();
   }
 
-  Future<void> saveSticker(StickerModel sticker) async {
-    await isar.writeTxn(() async {
-      await isar.stickerModels.put(sticker);
-    });
+  Future<StickerModel> saveSticker(Uint8List bytes, extension) async {
+    try {
+      final fileName = await FileServices().saveImgBytes(
+        bytes,
+        'stickers',
+        extension: extension,
+      );
+      final String savedStickerId = const Uuid().v4();
+
+      final sticker = StickerModel(
+        savedStickerId: savedStickerId,
+        imagePath: fileName,
+        createdAt: DateTime.now(),
+      );
+
+      await isar.writeTxn(() async {
+        await isar.stickerModels.put(sticker);
+      });
+      return sticker;
+    } catch (e) {
+      throw Exception(e.toString());
+    }
   }
 
-  Future<StickerModel> saveStickerBytes(Uint8List bytes) async {
-    final Directory appDir = await getApplicationDocumentsDirectory();
-    final String stickersPath = '${appDir.path}/saved_stickers';
-    final Directory stickersDir = Directory(stickersPath);
-    if (!await stickersDir.exists()) {
-      await stickersDir.create(recursive: true);
+  Future<void> updateSticker(
+    String savedStickerId,
+    Uint8List newBytes,
+  ) async {
+    try {
+      final existing = await isar.stickerModels
+          .filter()
+          .savedStickerIdEqualTo(savedStickerId)
+          .findFirst();
+
+      if (existing == null) throw Exception('Sticker not found');
+      final extension = existing.imagePath.split('.').last.toLowerCase();
+      // Delete old file then save new one
+      await FileServices().removeImgFile(existing.imagePath);
+      final newPath = await FileServices().saveImgBytes(
+        newBytes,
+        'stickers',
+        extension: extension,
+      );
+
+      await isar.writeTxn(() async {
+        await isar.stickerModels.put(
+          StickerModel(
+            savedStickerId: savedStickerId,
+            imagePath: newPath,
+            createdAt: existing.createdAt,
+          )..isarId = existing.isarId,
+        );
+      });
+    } catch (e) {
+      throw Exception(e.toString());
     }
-
-    final String savedStickerId = const Uuid().v4();
-    final String filePath = '$stickersPath/sticker_$savedStickerId.png';
-    await File(filePath).writeAsBytes(bytes);
-
-    final sticker = StickerModel(
-      savedStickerId: savedStickerId,
-      imagePath: filePath,
-      createdAt: DateTime.now(),
-    );
-
-    await saveSticker(sticker);
-    return sticker;
   }
 
   Future<void> deleteSticker(String savedStickerId) async {
     final sticker = await getStickerById(savedStickerId);
     if (sticker != null) {
       try {
-        final file = File(sticker.imagePath);
-        if (await file.exists()) {
-          await file.delete();
-        }
+        await FileServices().removeImgFile(sticker.imagePath);
+        await isar.writeTxn(() async {
+          await isar.stickerModels
+              .filter()
+              .savedStickerIdEqualTo(savedStickerId)
+              .deleteFirst();
+        });
       } catch (_) {}
     }
-
-    await isar.writeTxn(() async {
-      await isar.stickerModels
-          .filter()
-          .savedStickerIdEqualTo(savedStickerId)
-          .deleteFirst();
-    });
   }
 
   Future<bool> isStickerSaved(String id) async {
@@ -75,4 +100,34 @@ class LocalDataSource {
         .findFirst();
     return sticker != null;
   }
+
+  Future<void> saveStickerTray(Uint8List bytes) async {
+    try {
+      final fileName = await FileServices().saveImgBytes(
+        bytes,
+        'tray',
+        extension: 'png',
+      );
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+  // FuturesaveStickerPack(StickerPackModel pack) async {
+  //   await isar.writeTxn(() async {
+  //     await isar.stickerPackModels.put(pack);
+  //   });
+  // }
+
+  // Future<List<StickerPackModel>> getAllStickerPacks() async {
+  //   return await isar.stickerPackModels.where().findAll();
+  // }
+
+  // Future deleteStickerPack(String identifier) async {
+  //   await isar.writeTxn(() async {
+  //     await isar.stickerPackModels
+  //         .filter()
+  //         .identifierEqualTo(identifier)
+  //         .deleteFirst();
+  //   });
+  // }
 }

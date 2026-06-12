@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:isar_community/isar.dart';
 
 part 'sticker_model.g.dart';
@@ -29,6 +31,14 @@ class StickerModel {
       savedStickerId: json['savedStickerId'],
       imagePath: json['imagePath'],
       createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+
+  factory StickerModel.fromFile(File file) {
+    return StickerModel(
+      savedStickerId: file.path,
+      imagePath: file.path,
+      createdAt: DateTime.now(),
     );
   }
 }
