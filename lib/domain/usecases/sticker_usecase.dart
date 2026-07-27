@@ -1,34 +1,31 @@
 import 'dart:typed_data';
 
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
-import 'package:multimedia_sticker_maker/domain/repositories/sticker_repository.dart';
+import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 
-class StickerUseCase {
-  final StickerRepository repository;
-
-  StickerUseCase({required this.repository});
-
-  Future<StickerModel?> getStickerById(String id) {
-    return repository.getStickerById(id);
-  }
-
-  Future<List<StickerModel>> getSavedStickers() {
-    return repository.getSavedStickers();
-  }
-
-  Future<StickerModel> saveSticker(Uint8List bytes, String extension) {
-    return repository.saveSticker(bytes, extension);
-  }
-
-  Future<void> updateSticker(String savedStickerId, Uint8List bytes) {
-    return repository.updateSticker(savedStickerId, bytes);
-  }
-
-  Future<void> deleteSticker(String savedStickerId) {
-    return repository.deleteSticker(savedStickerId);
-  }
-
-  Future<bool> isStickerSaved(String id) {
-    return repository.isStickerSaved(id);
-  }
+abstract class StickerUseCase {
+  Future<StickerModel?> getStickerById(String id);
+  Future<List<StickerModel>> getSavedStickers();
+  Future<StickerModel> saveSticker(Uint8List bytes, String extension);
+  Future<void> updateSticker(String savedStickerId, Uint8List bytes);
+  Future<void> deleteSticker(String savedStickerId);
+  Future<bool> isStickerSaved(String savedStickerId);
+  Future saveStickerPack(StickerPack stickerPack);
+  Future<StickerPack?> getStickerPackById(int packId);
+  Future deleteStickerPack(int id);
+  Future<String> addStickerToPack({
+    required Uint8List imageBytes,
+    required String extension,
+    required List<String> emoji,
+    required int packId,
+  });
+  Future removeStickerFromPack(String savedStickerId, int packId);
+  Future<String> updateStickerInPack({
+    required Uint8List newImageBytes,
+    required List<String> emoji,
+    required int packId,
+    required String savedStickerId,
+  });
+  Future<List<StickerPack>> getAllStickerPacks();
+  Future<List<StickerModel>> getAllStickersInStickerPack({required int packId});
 }

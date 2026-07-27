@@ -40,7 +40,7 @@ final class IsarProvider
   }
 }
 
-String _$isarHash() => r'eff9e58db4748c2bdfca0f5f11b3191969792e21';
+String _$isarHash() => r'd71fe5f2ac244c78f67f4ad708e15a5c98171281';
 
 @ProviderFor(localDataSource)
 final localDataSourceProvider = LocalDataSourceProvider._();
@@ -159,4 +159,4 @@ final class StickerUseCaseProvider
   }
 }
 
-String _$stickerUseCaseHash() => r'33f898dccfee637f2aa780188c51fb71a58ca18c';
+String _$stickerUseCaseHash() => r'414e79be47c9d41f673ad99891d2835fd14e68ea';

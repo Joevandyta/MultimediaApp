@@ -1,9 +1,11 @@
 import 'package:isar_community/isar.dart';
 import 'package:multimedia_sticker_maker/data/datasources/local/local_data_sources.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
+import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/data/repositories/sticker_repository_impl.dart';
 import 'package:multimedia_sticker_maker/domain/repositories/sticker_repository.dart';
 import 'package:multimedia_sticker_maker/domain/usecases/sticker_usecase.dart';
+import 'package:multimedia_sticker_maker/domain/usecases/sticker_usecase_impl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -15,7 +17,7 @@ Future<Isar> isar(Ref ref) async {
   if (Isar.instanceNames.contains('db')) {
     return Isar.getInstance('db')!;
   }
-  return await Isar.open([StickerModelSchema], directory: dir.path, name: 'db');
+  return await Isar.open([StickerModelSchema, StickerPackSchema], directory: dir.path, name: 'db');
 }
 
 @riverpod
@@ -33,5 +35,5 @@ Future<StickerRepository> stickerRepository(Ref ref) async {
 @riverpod
 Future<StickerUseCase> stickerUseCase(Ref ref) async {
   final repository = await ref.watch(stickerRepositoryProvider.future);
-  return StickerUseCase(repository: repository);
+  return StickerUseCaseImpl(repository: repository);
 }

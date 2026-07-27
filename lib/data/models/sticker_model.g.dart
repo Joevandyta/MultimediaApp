@@ -40,7 +40,15 @@ const StickerModelSchema = CollectionSchema(
   deserializeProp: _stickerModelDeserializeProp,
   idName: r'isarId',
   indexes: {},
-  links: {},
+  links: {
+    r'pack': LinkSchema(
+      id: 744617758366573550,
+      name: r'pack',
+      target: r'StickerPack',
+      single: true,
+      linkName: r'stickers',
+    ),
+  },
   embeddedSchemas: {},
 
   getId: _stickerModelGetId,
@@ -109,7 +117,7 @@ Id _stickerModelGetId(StickerModel object) {
 }
 
 List<IsarLinkBase<dynamic>> _stickerModelGetLinks(StickerModel object) {
-  return [];
+  return [object.pack];
 }
 
 void _stickerModelAttach(
@@ -118,6 +126,7 @@ void _stickerModelAttach(
   StickerModel object,
 ) {
   object.isarId = id;
+  object.pack.attach(col, col.isar.collection<StickerPack>(), r'pack', id);
 }
 
 extension StickerModelQueryWhereSort
@@ -605,7 +614,21 @@ extension StickerModelQueryObject
     on QueryBuilder<StickerModel, StickerModel, QFilterCondition> {}
 
 extension StickerModelQueryLinks
-    on QueryBuilder<StickerModel, StickerModel, QFilterCondition> {}
+    on QueryBuilder<StickerModel, StickerModel, QFilterCondition> {
+  QueryBuilder<StickerModel, StickerModel, QAfterFilterCondition> pack(
+    FilterQuery<StickerPack> q,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.link(q, r'pack');
+    });
+  }
+
+  QueryBuilder<StickerModel, StickerModel, QAfterFilterCondition> packIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.linkLength(r'pack', 0, true, 0, true);
+    });
+  }
+}
 
 extension StickerModelQuerySortBy
     on QueryBuilder<StickerModel, StickerModel, QSortBy> {

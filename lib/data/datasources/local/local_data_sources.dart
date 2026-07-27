@@ -1,5 +1,7 @@
+import 'dart:ffi';
 import 'dart:typed_data';
 import 'package:multimedia_sticker_maker/core/services/Image_file.dart';
+import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:uuid/uuid.dart';
 import 'package:isar_community/isar.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
@@ -44,7 +46,7 @@ class LocalDataSource {
     }
   }
 
-  Future<void> updateSticker(
+  Future<StickerModel> updateSticker(
     String savedStickerId,
     Uint8List newBytes,
   ) async {
@@ -63,16 +65,15 @@ class LocalDataSource {
         'stickers',
         extension: extension,
       );
-
+      final updatedSticker = StickerModel(
+        savedStickerId: savedStickerId,
+        imagePath: newPath,
+        createdAt: existing.createdAt,
+      )..isarId = existing.isarId;
       await isar.writeTxn(() async {
-        await isar.stickerModels.put(
-          StickerModel(
-            savedStickerId: savedStickerId,
-            imagePath: newPath,
-            createdAt: existing.createdAt,
-          )..isarId = existing.isarId,
-        );
+        await isar.stickerModels.put(updatedSticker);
       });
+      return updatedSticker;
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -102,32 +103,131 @@ class LocalDataSource {
   }
 
   Future<void> saveStickerTray(Uint8List bytes) async {
+    try {} catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<String> addStickerToPack({
+    required Uint8List imageBytes,
+    required String extension,
+    required List<String> emoji,
+    required int packId,
+  }) async {
     try {
-      final fileName = await FileServices().saveImgBytes(
-        bytes,
-        'tray',
-        extension: 'png',
-      );
+      final savedNewSticker = await saveSticker(imageBytes, extension);
+      final stickerPack = await getStickerPackById(packId);
+      if (stickerPack == null) {
+        throw Exception("Sticker pack not found");
+      }
+      stickerPack.addSticker(savedNewSticker, emoji);
+      stickerPack.lastEdited = DateTime.now();
+      await saveStickerPack(stickerPack);
+
+      return savedNewSticker.savedStickerId;
+    } catch (e) {
+      print("Error adding sticker to pack: $e");
+      throw Exception("cant add new sticker to pack ${e.toString()}");
+    }
+  }
+
+  Future<String> updateStickerInPack({
+    required Uint8List newImageBytes,
+    required List<String> emoji,
+    required int packId,
+    required String savedStickerId,
+  }) async {
+    try {
+      final updatedSticker = await updateSticker(savedStickerId, newImageBytes);
+      final sticker = await getStickerById(savedStickerId);
+      if (sticker != null) {
+        throw Exception("Sticker not found");
+      }
+      final stickerPack = await getStickerPackById(packId);
+      if (stickerPack == null) {
+        throw Exception("Sticker pack not found");
+      }
+      stickerPack.removeSticker(sticker!);
+      stickerPack.addSticker(updatedSticker, emoji);
+      stickerPack.lastEdited = DateTime.now();
+      await saveStickerPack(stickerPack);
+
+      return updatedSticker.savedStickerId;
+    } catch (e) {
+      print("Error adding sticker to pack: $e");
+      throw Exception("cant add new sticker to pack ${e.toString()}");
+    }
+  }
+
+  Future<void> removeStickerFromPack(String savedStickerId, int packId) async {
+    try {
+      print("remove sticker from pack");
+      final stickerPack = await getStickerPackById(packId);
+      if (stickerPack == null) {
+        throw Exception("Sticker pack not found");
+      }
+
+      final sticker = await getStickerById(savedStickerId);
+      if (sticker == null) {
+        throw Exception("Sticker not found");
+      }
+      deleteSticker(savedStickerId);
+      stickerPack.lastEdited = DateTime.now();
+      stickerPack.removeSticker(sticker);
+      await saveStickerPack(stickerPack);
+    } catch (e) {
+      throw Exception("cant remove sticker from pack ${e.toString()}");
+    }
+  }
+
+  Future<void> saveStickerPack(StickerPack stickerPack) async {
+    try {
+      await isar.writeTxn(() async {
+        await isar.stickerPacks.put(stickerPack);
+        await stickerPack.stickers.save();
+      });
+      print('Sticker pack saved successfully in local source');
     } catch (e) {
       throw Exception(e.toString());
     }
   }
-  // FuturesaveStickerPack(StickerPackModel pack) async {
-  //   await isar.writeTxn(() async {
-  //     await isar.stickerPackModels.put(pack);
-  //   });
-  // }
 
-  // Future<List<StickerPackModel>> getAllStickerPacks() async {
-  //   return await isar.stickerPackModels.where().findAll();
-  // }
+  Future<StickerPack?> getStickerPackById(int id) async {
+    final stickerPack = await isar.stickerPacks
+        .filter()
+        .isarIdEqualTo(id)
+        .findFirst();
+    if (stickerPack == null) return null;
+    await stickerPack.stickers.load();
+    return stickerPack;
+  }
 
-  // Future deleteStickerPack(String identifier) async {
-  //   await isar.writeTxn(() async {
-  //     await isar.stickerPackModels
-  //         .filter()
-  //         .identifierEqualTo(identifier)
-  //         .deleteFirst();
-  //   });
-  // }
+  Future<List<StickerPack>> getStickerPacks() async {
+    print("get all sticker pack");
+    final list = await isar.stickerPacks.where().findAll();
+    for (final pack in list) {
+      await pack.stickers.load();
+    }
+    print("sticker pack : ${list.length}");
+    return list;
+  }
+
+  Future<List<StickerModel>> getAllStickersInStickerPack({
+    required int packId,
+  }) async {
+    final stickerPack = await isar.stickerPacks
+        .filter()
+        .isarIdEqualTo(packId)
+        .findFirst();
+    if (stickerPack == null) return [];
+    await stickerPack.stickers.load();
+    List<StickerModel> list = stickerPack.stickers.toList();
+    return list;
+  }
+
+  Future<void> deleteStickerPack(int id) async {
+    await isar.writeTxn(() async {
+      await isar.stickerPacks.filter().isarIdEqualTo(id).deleteFirst();
+    });
+  }
 }

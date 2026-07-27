@@ -5,25 +5,37 @@ import 'package:go_router/go_router.dart';
 import '../provider/sticker_provider.dart';
 import '../../data/models/sticker_model.dart';
 
-class SavedScreen extends ConsumerStatefulWidget {
-  const SavedScreen({super.key});
+class SavedStickersScreen extends ConsumerStatefulWidget {
+  const SavedStickersScreen({super.key});
 
   @override
-  ConsumerState<SavedScreen> createState() => _SavedScreenState();
+  ConsumerState<SavedStickersScreen> createState() =>
+      _SavedStickersScreenState();
 }
 
-class _SavedScreenState extends ConsumerState<SavedScreen> {
+class _SavedStickersScreenState extends ConsumerState<SavedStickersScreen> {
   @override
   Widget build(BuildContext context) {
     final savedStickersAsync = ref.watch(savedStickersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Saved Stickers')),
+      appBar: AppBar(
+        title: const Text(
+          'Stiker Tersimpan',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ),
       body: savedStickersAsync.when(
         data: (savedStickers) => savedStickers.isEmpty
             ? _buildEmptyState()
             : _buildGrid(savedStickers),
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF00FF41)),
+        ),
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
@@ -42,7 +54,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
           const SizedBox(height: 16),
           const Text(
             'Belum ada stiker yang disimpan',
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: Colors.white70, fontSize: 15),
           ),
         ],
       ),
@@ -70,25 +82,48 @@ class _SavedScreenState extends ConsumerState<SavedScreen> {
               context: context,
               builder: (context) {
                 return AlertDialog(
-                  title: const Text('Delete Sticker'),
+                  backgroundColor: const Color(0xFF111A16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: const Color(0xFF25D366).withValues(alpha: 0.2),
+                    ),
+                  ),
+                  title: const Text(
+                    'Hapus Stiker?',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   content: const Text(
-                    'Are you sure you want to delete this sticker?',
+                    'Apakah Anda yakin ingin menghapus stiker ini dari penyimpanan?',
                   ),
                   actions: [
                     TextButton(
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: const Text('Cancel'),
+                      child: Text(
+                        'Batal',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                      ),
                     ),
-                    TextButton(
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF4B4B),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(80, 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                       onPressed: () {
                         ref
                             .read(savedStickersProvider.notifier)
                             .removeSticker(sticker.savedStickerId);
                         Navigator.pop(context);
                       },
-                      child: const Text('Delete'),
+                      child: const Text('Hapus'),
                     ),
                   ],
                 );

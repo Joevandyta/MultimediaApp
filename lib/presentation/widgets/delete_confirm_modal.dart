@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 class DeleteConfirmModal extends StatelessWidget {
+  final String? title;
+  final String? message;
   final VoidCallback onConfirm;
 
-  const DeleteConfirmModal({super.key, required this.onConfirm});
+  const DeleteConfirmModal({
+    super.key,
+    this.title,
+    this.message,
+    required this.onConfirm,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +45,9 @@ class DeleteConfirmModal extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Hapus Gambar?',
-            style: TextStyle(
+          Text(
+            title ?? 'Hapus Gambar?',
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -49,7 +56,8 @@ class DeleteConfirmModal extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Gambar yang dipilih akan dihapus.\nKamu perlu upload ulang jika ingin melanjutkan.',
+            message ??
+                'Gambar yang dipilih akan dihapus.\nKamu perlu upload ulang jika ingin melanjutkan.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
