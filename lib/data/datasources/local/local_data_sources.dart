@@ -51,6 +51,7 @@ class LocalDataSource {
     Uint8List newBytes,
   ) async {
     try {
+
       final existing = await isar.stickerModels
           .filter()
           .savedStickerIdEqualTo(savedStickerId)
@@ -58,6 +59,7 @@ class LocalDataSource {
 
       if (existing == null) throw Exception('Sticker not found');
       final extension = existing.imagePath.split('.').last.toLowerCase();
+
       // Delete old file then save new one
       await FileServices().removeImgFile(existing.imagePath);
       final newPath = await FileServices().saveImgBytes(
@@ -70,6 +72,7 @@ class LocalDataSource {
         imagePath: newPath,
         createdAt: existing.createdAt,
       )..isarId = existing.isarId;
+      
       await isar.writeTxn(() async {
         await isar.stickerModels.put(updatedSticker);
       });
