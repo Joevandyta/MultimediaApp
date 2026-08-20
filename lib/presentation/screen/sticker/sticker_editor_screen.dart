@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,11 +8,10 @@ import 'package:image_pickers/image_pickers.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/presentation/provider/sticker_pack_provider.dart';
 import 'package:multimedia_sticker_maker/presentation/provider/sticker_provider.dart';
+import 'package:multimedia_sticker_maker/presentation/widgets/sticker_pack_modal.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
-import 'package:whatsapp_stickers_injector/exceptions.dart';
 import '../../../data/models/sticker_model.dart';
 import '../../widgets/picker_option.dart';
 import '../../widgets/share_bar.dart';
@@ -33,7 +31,7 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
     with TickerProviderStateMixin {
   File? _selectedImages;
   final bool _isProcessing = false;
-  bool _isSharing = false;
+  bool _isDeleting = false;
   bool _isSaving = false;
   String? _currentSavedStickerId;
   StickerPack? _targetStickerPack;
@@ -69,25 +67,31 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
         );
 
     if (widget.stickerId != null) {
-      _loadInitialSticker(widget.stickerId!);
+      _loadInitialSticker(widget.stickerId!, widget.packId!);
     }
   }
 
-  Future<void> _loadInitialSticker(String stickerId) async {
+  Future<void> _loadInitialSticker(String stickerId, String packId) async {
     // pastikan provider sudah settle dulu sebelum akses .notifier
     await ref.read(savedStickersProvider.future);
+    await ref.read(stickerPackProviderProvider.future);
     if (!mounted) return;
+    final pack = await ref
+        .read(stickerPackProviderProvider.notifier)
+        .getStickerPackById(int.parse(packId));
 
     final sticker = await ref
         .read(savedStickersProvider.notifier)
         .getStickerById(stickerId);
 
-    if (sticker == null)
+    if (sticker == null) {
       return; // sticker mungkin sudah dihapus / tidak ditemukan
+    }
     if (!mounted) return; // guard lagi setelah async gap kedua
 
     setState(() {
       _selectedImages = File(sticker.imagePath);
+      _targetStickerPack = pack;
       _currentSavedStickerId = sticker
           .savedStickerId; // 👈 dari `sticker`, bukan widget.initialSticker
       _toggleSaveActive = true;
@@ -294,10 +298,12 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
                   const SizedBox(height: 4),
                   ShareBar(
                     key: const ValueKey('share_bar'),
-                    onShare: _shareAsSticker,
-                    onSave: _showStickerPackGrid,
-                    isSharing: _isSharing,
+                    onToggle: _toggleSaveActive
+                        ? _deleteSticker
+                        : _showStickerPackGrid,
+                    onViewPack: _showViewPackModal,
                     isSaving: _isSaving,
+                    isDeleting: _isDeleting,
                     isSaved: _toggleSaveActive,
                   ),
                 ],
@@ -335,7 +341,7 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
           savedStickerId: _currentSavedStickerId!,
         );
         print("updated sticker id: $updatedStickerId");
-        
+
         setState(() {
           _currentSavedStickerId = updatedStickerId;
           _targetStickerPack = targetPack;
@@ -592,90 +598,62 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
     return Uint8List.fromList(img.encodePng(resized));
   }
 
-  Future<void> _shareAsSticker() async {
-    if (_selectedImages == null) return;
-
-    setState(() => _isSharing = true);
-
-    try {
-      final appDir = await getTemporaryDirectory();
-      final stickersDirectory = Directory('${appDir.path}/stickers');
-      await stickersDirectory.create(recursive: true);
-      final trayPath = '${stickersDirectory.path}/tray_123.png';
-
-      final bytes = await _selectedImages!.readAsBytes();
-      final decoded = img.decodeImage(bytes)!;
-      // Make canvas size = the longer side
-      final size = decoded.width > decoded.height
-          ? decoded.width
-          : decoded.height;
-      final padded = img.Image(
-        width: size,
-        height: size,
-      ); // transparent by default
-
-      // Center the original image on the canvas
-      final offsetX = (size - decoded.width) ~/ 2;
-      final offsetY = (size - decoded.height) ~/ 2;
-      img.compositeImage(padded, decoded, dstX: offsetX, dstY: offsetY);
-
-      final paddedFile = File('${stickersDirectory.path}/padded_.png');
-      await paddedFile.writeAsBytes(img.encodePng(padded));
-
-      final trayImage = await FlutterImageCompress.compressAndGetFile(
-        paddedFile.path,
-        trayPath,
-        format: CompressFormat.png,
-        quality: 100,
-        minWidth: 96,
-        minHeight: 96,
-      );
-      if (trayImage == null) throw Exception('Failed to create tray image');
-
-      final stickerImage = <XFile>[];
-      for (int i = 0; i < 5; i++) {
-        final sticker = await FlutterImageCompress.compressAndGetFile(
-          paddedFile.path,
-          '${stickersDirectory.path}/sticker_$i.webp',
-          format: CompressFormat.webp,
-          quality: 80,
-          minWidth: 512,
-          minHeight: 512,
-        );
-        stickerImage.add(sticker!);
-      }
-
-      final stickerFiles = <String, List<String>>{
-        stickerImage[0].path: ['☕', '🙂'],
-        stickerImage[1].path: ['😄', '😀'],
-        stickerImage[2].path: ['😆', '😂'],
-        stickerImage[3].path: ['🧏‍♂️', '😂'],
-        stickerImage[4].path: ['🙏', '🧏‍♂️'],
-      };
-      final stickerPack = StickerPack(
-        identifier: 'cuppyFlutterWhatsAppStickers',
-        name: 'StickerPack',
-        publisher: 'Multimedia Sticker Maker',
-        lastEdited: DateTime.now(),
-        trayImagePath: trayImage.path,
-        publisherWebsite: '',
-        privacyPolicyWebsite: '',
-        licenseAgreementWebsite: '',
-      );
-      stickerFiles.forEach((path, emoji) {
-        stickerPack.addSticker(StickerModel.fromFile(File(path)), emoji);
-      });
-      await stickerPack.shareToWhatsApp();
-      _showSnack('Sticker berhasil dikirim ke WhatsApp!');
-    } on WhatsappStickersException catch (e) {
-      debugPrint('WhatsappStickersException: ${e.cause}');
-      _showSnack(e.cause.toString(), isError: true);
-    } catch (e, st) {
-      debugPrint('Error: $e\n$st');
-      _showSnack('Gagal: $e', isError: true);
-    } finally {
-      setState(() => _isSharing = false);
+  Future<void> _deleteSticker() async {
+    if (_currentSavedStickerId == null || _targetStickerPack == null) {
+      _showSnack('Stiker belum tersimpan ke pack manapun', isError: true);
+      return;
     }
+
+    bool confirmed = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF111A16),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DeleteConfirmModal(
+        title: 'Hapus Stiker?',
+        message:
+            'Stiker akan dihapus dari pack "${_targetStickerPack!.name}". Tindakan ini tidak dapat dibatalkan.',
+        onConfirm: () {
+          confirmed = true;
+          Navigator.pop(ctx);
+        },
+      ),
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await ref
+          .read(stickerPackProviderProvider.notifier)
+          .removeStickerFromPack(
+            _currentSavedStickerId!,
+            _targetStickerPack!.isarId,
+          );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      _showSnack('Gagal menghapus stiker: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
+  void _showViewPackModal() {
+    if (_targetStickerPack == null) {
+      _showSnack('Stiker belum disimpan ke pack manapun', isError: true);
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF111A16),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (_) =>
+          StickerPackModalSheet(pack: _targetStickerPack!, onShare: () {}),
+    );
   }
 
   void _showSnack(String msg, {bool isError = false}) {
@@ -796,6 +774,133 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111A16),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFF25D366).withValues(alpha: 0.15),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  blurRadius: 24,
+                  spreadRadius: 4,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon badge
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00FF41).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.save_rounded,
+                    color: Color(0xFF00FF41),
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Title
+                const Text(
+                  'Simpan Stiker?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Content
+                Text(
+                  'Stiker ini akan disimpan ke pack "${pack.name}"',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: Text(
+                          'Batal',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00FF41),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final router = GoRouter.of(context);
+                          Navigator.pop(dialogContext);
+                          Navigator.pop(context);
+
+                          final success = await _saveOrUpdateSticker(pack);
+
+                          if (success && mounted) {
+                            router.go('/');
+                          }
+                        },
+                        child: const Text(
+                          'Simpan',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showConfirmSaveDialogs(StickerPack pack) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: const Color(0xFF111A16),
           shape: RoundedRectangleBorder(
@@ -885,12 +990,8 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
                   labelStyle: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                   ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  focusedBorder: const UnderlineInputBorder(
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF00FF41)),
                   ),
                 ),
@@ -904,12 +1005,8 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
                   labelStyle: TextStyle(
                     color: Colors.white.withValues(alpha: 0.6),
                   ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  focusedBorder: const UnderlineInputBorder(
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF00FF41)),
                   ),
                 ),
@@ -986,7 +1083,6 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
     StickerPack? selectedPack,
     void Function(StickerPack) onSelect,
   ) {
-    print("ini owned pack nya : ${ownedPacks.length}");
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -1054,73 +1150,78 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
       borderRadius: BorderRadius.circular(16),
       child: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFF16251E)
-                  : const Color(0xFF111A16),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF00FF41)
-                    : Colors.white.withValues(alpha: 0.08),
-                width: isSelected ? 2 : 1,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: const Color(0xFF00FF41).withValues(alpha: 0.15),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
-            ),
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: pack.trayImagePath.isNotEmpty
-                      ? Image.file(
-                          File(pack.trayImagePath),
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                                Icons.collections_bookmark_rounded,
-                                size: 28,
-                                color: Color(0xFF25D366),
-                              ),
-                        )
-                      : const Icon(
-                          Icons.collections_bookmark_rounded,
-                          size: 28,
-                          color: Color(0xFF25D366),
+                    ? const Color(0xFF16251E)
+                    : const Color(0xFF111A16),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF00FF41)
+                      : Colors.white.withValues(alpha: 0.08),
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(
+                            0xFF00FF41,
+                          ).withValues(alpha: 0.15),
+                          blurRadius: 10,
+                          spreadRadius: 2,
                         ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  pack.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                      ]
+                    : null,
+              ),
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: pack.trayImagePath.isNotEmpty
+                        ? Image.file(
+                            File(pack.trayImagePath),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.collections_bookmark_rounded,
+                                  size: 28,
+                                  color: Color(0xFF25D366),
+                                ),
+                          )
+                        : const Icon(
+                            Icons.collections_bookmark_rounded,
+                            size: 28,
+                            color: Color(0xFF25D366),
+                          ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${pack.stickers.length} Stickers',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 9,
+                  const SizedBox(height: 8),
+                  Text(
+                    pack.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '${pack.stickers.length} Stickers',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+
           if (isSelected)
             Positioned(
               top: 6,

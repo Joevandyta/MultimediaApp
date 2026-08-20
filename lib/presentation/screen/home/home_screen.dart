@@ -102,27 +102,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       },
                       itemBuilder: (BuildContext context) => [
                         PopupMenuItem<String>(
-                          value: 'stickers',
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.emoji_emotions_rounded,
-                                color: Color(0xFF00FF41),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Stiker Tersimpan',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
                           value: 'packs',
                           child: Row(
                             children: [
