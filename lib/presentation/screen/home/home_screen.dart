@@ -1,15 +1,12 @@
 import 'dart:io';
-import 'dart:ui' as ui;
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
-import 'package:flutter/widget_previews.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/presentation/provider/sticker_pack_provider.dart';
 import 'package:multimedia_sticker_maker/presentation/widgets/delete_confirm_modal.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:multimedia_sticker_maker/presentation/widgets/sticker_pack_modal.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -21,6 +18,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
+  bool _isSharing = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,33 +95,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       ),
                       onSelected: (value) {
                         if (value == 'stickers') {
-                          context.push('/saved/stickers');
+                          context.push('/stickers');
                         } else if (value == 'packs') {
-                          context.push('/saved/packs');
+                          context.push('/packs');
                         }
                       },
                       itemBuilder: (BuildContext context) => [
-                        PopupMenuItem<String>(
-                          value: 'stickers',
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.emoji_emotions_rounded,
-                                color: Color(0xFF00FF41),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Stiker Tersimpan',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         PopupMenuItem<String>(
                           value: 'packs',
                           child: Row(
@@ -159,8 +137,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
-
-  int? _addingPackId;
 
   void _showSuccessSnack(String msg) {
     if (!mounted) return;
@@ -277,15 +253,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildStickerPackItem(StickerPack pack) {
-    final isAddingThis = _addingPackId == pack.isarId;
     final stickersList = pack.stickers.toList();
+
     return InkWell(
       onTap: () {
-        _showSuccessSnack("ini adalah pack ${pack.name}");
+        showModalBottomSheet(
+          context: context,
+          useRootNavigator: true,
+          backgroundColor: const Color(0xFF111A16),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          isScrollControlled: true,
+          builder: (_) => StickerPackModalSheet(
+            pack: pack,
+            onShare: () => _sharePack(pack),
+          ),
+        );
       },
       onLongPress: () {
         showModalBottomSheet(
           context: context,
+          useRootNavigator: true,
           backgroundColor: const Color(0xFF111A16),
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -374,10 +363,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 const SizedBox(width: 12),
                 // Add to WhatsApp button
                 InkWell(
-                  onTap: isAddingThis
+                  onTap: _isSharing
                       ? null
                       : () async {
-                          setState(() => _addingPackId = pack.isarId);
+                          setState(() => _isSharing = true);
                           try {
                             if (pack.stickers.length < 3) {
                               _showErrorSnack(
@@ -389,7 +378,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           } catch (e) {
                             if (mounted) _showErrorSnack('Gagal share: $e');
                           } finally {
-                            if (mounted) setState(() => _addingPackId = null);
+                            if (mounted) setState(() => _isSharing = false);
                           }
                         },
                   borderRadius: BorderRadius.circular(18),
@@ -407,7 +396,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (isAddingThis) ...[
+                        if (_isSharing) ...[
                           SizedBox(
                             width: 14,
                             height: 14,
@@ -464,33 +453,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildStickerItem(StickerModel sticker) {
     debugPrint("image stickerpath ${sticker.imagePath}");
-    return InkWell(
-      onTap: () {
-        _showSuccessSnack("Ini adalah sticker ${sticker.savedStickerId}");
-      },
-      borderRadius: BorderRadius.circular(16),
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Container(
-        width: 100,
-        height: 100,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.08),
-            width: 1,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            image: DecorationImage(
-              image: FileImage(File(sticker.imagePath)),
-              fit: BoxFit.cover,
-            ),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          image: DecorationImage(
+            image: FileImage(File(sticker.imagePath)),
+            fit: BoxFit.cover,
           ),
         ),
       ),
     );
+  }
+
+  void _sharePack(StickerPack pack) async {
+    setState(() => _isSharing = true);
+    try {
+      if (pack.stickers.length < 3) {
+        _showErrorSnack('Pack harus memiliki minimal 3 stiker');
+        return;
+      }
+      await pack.shareToWhatsApp();
+      _showSuccessSnack('Pack berhasil dikirim ke WhatsApp!');
+    } catch (e) {
+      _showErrorSnack('Gagal share: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSharing = false);
+      }
+    }
   }
 }

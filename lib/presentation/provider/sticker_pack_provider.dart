@@ -1,8 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:multimedia_sticker_maker/core/services/Image_file.dart';
-import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/data/repository_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -16,6 +14,11 @@ class StickerPackProvider extends _$StickerPackProvider {
     // Menggunakan repository untuk mengambil data
     final usecase = await ref.watch(stickerUseCaseProvider.future);
     return await usecase.getAllStickerPacks();
+  }
+
+  Future<StickerPack?> getStickerPackById(int packId) async {
+    final usecase = await ref.watch(stickerUseCaseProvider.future);
+    return await usecase.getStickerPackById(packId);
   }
 
   Future<String> saveImageTray(Uint8List bytes) {
@@ -46,7 +49,6 @@ class StickerPackProvider extends _$StickerPackProvider {
     if (ref.mounted) ref.invalidateSelf();
     return stickerId;
   }
-
   Future<String> updateStickerInPack({
     required Uint8List newImageBytes,
     required List<String> emoji,

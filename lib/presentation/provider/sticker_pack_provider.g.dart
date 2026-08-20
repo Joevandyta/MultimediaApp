@@ -34,7 +34,7 @@ final class StickerPackProviderProvider
 }
 
 String _$stickerPackProviderHash() =>
-    r'bc876d995dda0b76dcfed95bd9219ad67c9cf838';
+    r'61071fa175318ccefae5abcc8795a55d17fc65c1';
 
 abstract class _$StickerPackProvider extends $AsyncNotifier<List<StickerPack>> {
   FutureOr<List<StickerPack>> build();

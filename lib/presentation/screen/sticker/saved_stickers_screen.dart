@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../provider/sticker_provider.dart';
-import '../../data/models/sticker_model.dart';
+import '../../provider/sticker_provider.dart';
+import '../../../data/models/sticker_model.dart';
 
 class SavedStickersScreen extends ConsumerStatefulWidget {
   const SavedStickersScreen({super.key});
@@ -75,7 +75,7 @@ class _SavedStickersScreenState extends ConsumerState<SavedStickersScreen> {
         final sticker = savedStickers[index];
         return GestureDetector(
           onTap: () {
-            context.push('/editor', extra: sticker);
+            context.push('/packs/new/stickers/${sticker.savedStickerId}', extra: sticker);
           },
           onLongPress: () {
             showDialog(

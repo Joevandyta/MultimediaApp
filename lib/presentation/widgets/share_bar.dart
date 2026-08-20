@@ -1,77 +1,92 @@
 import 'package:flutter/material.dart';
 
 class ShareBar extends StatelessWidget {
-  final VoidCallback onShare;
-  final VoidCallback onSave;
-  final bool isSharing;
+  /// Called when the toggle button is tapped.
+  /// - When [isSaved] is false → acts as Save
+  /// - When [isSaved] is true  → acts as Delete (caller should show confirmation)
+  final VoidCallback onToggle;
+
+  /// Called when the "View Pack" button is tapped.
+  final VoidCallback onViewPack;
+
   final bool isSaving;
+  final bool isDeleting;
   final bool isSaved;
 
   const ShareBar({
     super.key,
-    required this.onShare,
-    required this.onSave,
-    required this.isSharing,
+    required this.onToggle,
+    required this.onViewPack,
     required this.isSaving,
+    required this.isDeleting,
     required this.isSaved,
   });
 
   @override
   Widget build(BuildContext context) {
+    final busy = isSaving || isDeleting;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          // Tombol Save
+          // ── Toggle button: Save ↔ Delete ──────────────────────────────
           Expanded(
             flex: 2,
             child: GestureDetector(
-              onTap: (isSharing || isSaving) ? null : onSave,
+              onTap: busy ? null : onToggle,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: const Color(0xFF111A16),
+                  color: isSaved
+                      ? Colors.red.withValues(alpha: 0.12)
+                      : const Color(0xFF111A16),
                   border: Border.all(
-                    color: const Color(0xFF25D366).withValues(alpha: 0.3),
+                    color: isSaved
+                        ? Colors.redAccent.withValues(alpha: 0.4)
+                        : const Color(0xFF25D366).withValues(alpha: 0.3),
                   ),
                 ),
                 child: Center(
-                  child: isSaving
-                      ? const SizedBox(
+                  child: (isSaving || isDeleting)
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Color(0xFF25D366),
+                            color: isSaved
+                                ? Colors.redAccent
+                                : const Color(0xFF25D366),
                           ),
                         )
                       : Icon(
                           isSaved
-                              ? Icons.bookmark_added_rounded
+                              ? Icons.delete_outline_rounded
                               : Icons.bookmark_add_outlined,
-                          color: const Color(0xFF25D366),
+                          color: isSaved
+                              ? Colors.redAccent
+                              : const Color(0xFF25D366),
                         ),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          // Tombol Share
+
+          // ── View Pack button ───────────────────────────────────────────
           Expanded(
             flex: 5,
             child: GestureDetector(
-              onTap: (isSharing || isSaving) ? null : onShare,
+              onTap: busy ? null : onViewPack,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    colors: isSharing
-                        ? [const Color(0xFF128C7E), const Color(0xFF075E54)]
-                        : [const Color(0xFF25D366), const Color(0xFF128C7E)],
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF25D366), Color(0xFF128C7E)],
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -81,28 +96,18 @@ class ShareBar extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (isSharing)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
-                    else
-                      const Icon(
-                        Icons.phone_android_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    const SizedBox(width: 10),
+                    Icon(
+                      Icons.grid_view_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    SizedBox(width: 10),
                     Text(
-                      isSharing ? 'Sharing...' : 'Share ke WhatsApp',
-                      style: const TextStyle(
+                      'View Pack',
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,

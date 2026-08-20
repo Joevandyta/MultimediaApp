@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:go_router/go_router.dart';
+import 'package:multimedia_sticker_maker/core/constants/constants.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
-import 'home_screen.dart';
-import 'settings_screen.dart';
+import 'home/home_screen.dart';
+import 'setting/settings_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -118,7 +119,7 @@ class CustomNotchedNavBar extends StatelessWidget {
               child: Center(
                 child: _ProminentFAB(
                   onPressed: () {
-                    context.push('/editor');
+                    context.push(AppRoutes.addSticker);
                   },
                 ),
               ),
