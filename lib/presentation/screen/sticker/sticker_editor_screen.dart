@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -15,15 +14,16 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:whatsapp_stickers_injector/exceptions.dart';
-import '../../data/models/sticker_model.dart';
-import '../widgets/picker_option.dart';
-import '../widgets/share_bar.dart';
-import '../widgets/image_preview_card.dart';
-import '../widgets/delete_confirm_modal.dart';
+import '../../../data/models/sticker_model.dart';
+import '../../widgets/picker_option.dart';
+import '../../widgets/share_bar.dart';
+import '../../widgets/image_preview_card.dart';
+import '../../widgets/delete_confirm_modal.dart';
 
 class StickerEditorScreen extends ConsumerStatefulWidget {
-  final StickerModel? initialSticker;
-  const StickerEditorScreen({super.key, this.initialSticker});
+  final String? packId;
+  final String? stickerId;
+  const StickerEditorScreen({super.key, this.packId, this.stickerId});
   @override
   ConsumerState<StickerEditorScreen> createState() =>
       _StickerEditorScreenState();
@@ -40,7 +40,6 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
   bool _toggleSaveActive = false;
   bool _isInitialStickerSaved = false;
   bool _anyChanges = false;
-
   Key _imageKey = UniqueKey();
   late AnimationController _pulseController;
   late AnimationController _slideController;
@@ -69,14 +68,32 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
           CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
         );
 
-    if (widget.initialSticker != null) {
-      _selectedImages = File(widget.initialSticker!.imagePath);
-      _currentSavedStickerId = widget.initialSticker!.savedStickerId;
-      // _currentSticker = widget.initialSticker;
+    if (widget.stickerId != null) {
+      _loadInitialSticker(widget.stickerId!);
+    }
+  }
+
+  Future<void> _loadInitialSticker(String stickerId) async {
+    // pastikan provider sudah settle dulu sebelum akses .notifier
+    await ref.read(savedStickersProvider.future);
+    if (!mounted) return;
+
+    final sticker = await ref
+        .read(savedStickersProvider.notifier)
+        .getStickerById(stickerId);
+
+    if (sticker == null)
+      return; // sticker mungkin sudah dihapus / tidak ditemukan
+    if (!mounted) return; // guard lagi setelah async gap kedua
+
+    setState(() {
+      _selectedImages = File(sticker.imagePath);
+      _currentSavedStickerId = sticker
+          .savedStickerId; // 👈 dari `sticker`, bukan widget.initialSticker
       _toggleSaveActive = true;
       _isInitialStickerSaved = true;
       _slideController.value = 1.0;
-    }
+    });
   }
 
   @override
@@ -318,6 +335,7 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
           savedStickerId: _currentSavedStickerId!,
         );
         print("updated sticker id: $updatedStickerId");
+        
         setState(() {
           _currentSavedStickerId = updatedStickerId;
           _targetStickerPack = targetPack;
