@@ -1,3 +1,15 @@
+/// Remote API base URL for fetching stickers.
+/// Set via --dart-define=API_ENDPOINT_GET_ALL_STICKER=<url> at build time,
+/// or falls back to the production URL.
+abstract class AppConstants {
+  AppConstants._();
+
+  static const stickerApiBaseUrl = String.fromEnvironment(
+    'API_ENDPOINT_GET_ALL_STICKER',
+    defaultValue: 'https://stickerify-web.vercel.app/api/stickers',
+  );
+}
+
 abstract class AppRoutes {
   AppRoutes._();
 
@@ -20,6 +32,9 @@ abstract class AppRoutes {
 
   static const savedStickers = '/stickers';
   static const savedStickersName = 'savedStickers';
+
+  static const exploreStickers = '/explore';
+  static const exploreStickersName = 'exploreStickers';
 
   static const addSticker = '/addsticker';
   static const addStickerName = 'addSticker';

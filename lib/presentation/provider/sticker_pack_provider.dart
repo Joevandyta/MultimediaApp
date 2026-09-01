@@ -49,6 +49,7 @@ class StickerPackProvider extends _$StickerPackProvider {
     if (ref.mounted) ref.invalidateSelf();
     return stickerId;
   }
+
   Future<String> updateStickerInPack({
     required Uint8List newImageBytes,
     required List<String> emoji,

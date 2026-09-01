@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:multimedia_sticker_maker/data/models/remote/api_stickers_response_dto.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 
@@ -28,4 +29,11 @@ abstract class StickerUseCase {
   });
   Future<List<StickerPack>> getAllStickerPacks();
   Future<List<StickerModel>> getAllStickersInStickerPack({required int packId});
+
+  // Remote API
+  Future<ApiStickersResponseDto> searchStickers({
+    required String search,
+    required int page,
+    required int limit,
+  });
 }

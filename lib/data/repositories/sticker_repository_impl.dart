@@ -1,15 +1,21 @@
 import 'dart:typed_data';
 
 import 'package:multimedia_sticker_maker/data/datasources/local/local_data_sources.dart';
+import 'package:multimedia_sticker_maker/data/datasources/remote/remote_sticker_data_source.dart';
+import 'package:multimedia_sticker_maker/data/models/remote/api_stickers_response_dto.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 
 import '../../domain/repositories/sticker_repository.dart';
 import '../models/sticker_model.dart';
 
 class StickerRepositoryImpl implements StickerRepository {
-  StickerRepositoryImpl({required this.localDataSource});
+  StickerRepositoryImpl({
+    required this.localDataSource,
+    required this.remoteDataSource,
+  });
 
   final LocalDataSource localDataSource;
+  final RemoteStickerDataSource remoteDataSource;
 
   @override
   Future<StickerModel?> getStickerById(String id) async {
@@ -104,5 +110,18 @@ class StickerRepositoryImpl implements StickerRepository {
     required int packId,
   }) {
     return localDataSource.getAllStickersInStickerPack(packId: packId);
+  }
+
+  @override
+  Future<ApiStickersResponseDto> searchStickers({
+    required String search,
+    required int page,
+    required int limit,
+  }) {
+    return remoteDataSource.getStickers(
+      search: search,
+      page: page,
+      limit: limit,
+    );
   }
 }

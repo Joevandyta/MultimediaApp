@@ -1,5 +1,7 @@
+import 'package:http/http.dart' as http;
 import 'package:isar_community/isar.dart';
 import 'package:multimedia_sticker_maker/data/datasources/local/local_data_sources.dart';
+import 'package:multimedia_sticker_maker/data/datasources/remote/remote_sticker_data_source.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/data/repositories/sticker_repository_impl.dart';
@@ -17,7 +19,11 @@ Future<Isar> isar(Ref ref) async {
   if (Isar.instanceNames.contains('db')) {
     return Isar.getInstance('db')!;
   }
-  return await Isar.open([StickerModelSchema, StickerPackSchema], directory: dir.path, name: 'db');
+  return await Isar.open(
+    [StickerModelSchema, StickerPackSchema],
+    directory: dir.path,
+    name: 'db',
+  );
 }
 
 @riverpod
@@ -27,9 +33,18 @@ Future<LocalDataSource> localDataSource(Ref ref) async {
 }
 
 @riverpod
+RemoteStickerDataSource remoteStickerDataSource(Ref ref) {
+  return RemoteStickerDataSource(client: http.Client());
+}
+
+@riverpod
 Future<StickerRepository> stickerRepository(Ref ref) async {
   final localDataSource = await ref.watch(localDataSourceProvider.future);
-  return StickerRepositoryImpl(localDataSource: localDataSource);
+  final remoteDataSource = ref.watch(remoteStickerDataSourceProvider);
+  return StickerRepositoryImpl(
+    localDataSource: localDataSource,
+    remoteDataSource: remoteDataSource,
+  );
 }
 
 @riverpod

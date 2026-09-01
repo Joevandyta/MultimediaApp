@@ -3,6 +3,7 @@ import 'package:multimedia_sticker_maker/core/constants/constants.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/main_navigation.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/packs/packs_screen.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/setting/settings_screen.dart';
+import 'package:multimedia_sticker_maker/presentation/screen/sticker/explore_stickers_screen.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/sticker/saved_stickers_screen.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/sticker/sticker_editor_screen.dart';
 // import 'sticker_model.dart'; // uncomment if using StickerModel as optional extra
@@ -43,7 +44,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.stickerEditor,
-      name: AppRoutes.stickerEditorName,  
+      name: AppRoutes.stickerEditorName,
       builder: (context, state) {
         final packId = state.pathParameters['packId']!;
         final stickerId = state.pathParameters['stickerId']!;
@@ -54,6 +55,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.savedStickers,
       name: AppRoutes.savedStickersName,
       builder: (context, state) => const SavedStickersScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.exploreStickers,
+      name: AppRoutes.exploreStickersName,
+      builder: (context, state) => const ExploreStickersScreen(),
     ),
     GoRoute(
       path: AppRoutes.packs,

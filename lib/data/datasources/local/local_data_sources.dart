@@ -51,7 +51,6 @@ class LocalDataSource {
     Uint8List newBytes,
   ) async {
     try {
-
       final existing = await isar.stickerModels
           .filter()
           .savedStickerIdEqualTo(savedStickerId)
@@ -72,7 +71,7 @@ class LocalDataSource {
         imagePath: newPath,
         createdAt: existing.createdAt,
       )..isarId = existing.isarId;
-      
+
       await isar.writeTxn(() async {
         await isar.stickerModels.put(updatedSticker);
       });

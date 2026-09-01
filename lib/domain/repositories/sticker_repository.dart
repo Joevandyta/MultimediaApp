@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:multimedia_sticker_maker/data/models/remote/api_stickers_response_dto.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 
 import '../../data/models/sticker_model.dart';
@@ -13,7 +14,6 @@ abstract class StickerRepository {
   Future saveStickerPack(StickerPack stickerPack);
   Future<StickerPack?> getStickerPackById(int packId);
   Future deleteStickerPack(int id);
-  
 
   Future<String> addStickerToPack({
     required Uint8List imageBytes,
@@ -32,4 +32,11 @@ abstract class StickerRepository {
 
   Future<List<StickerPack>> getAllStickerPacks();
   Future<List<StickerModel>> getAllStickersInStickerPack({required int packId});
+
+  // Remote API
+  Future<ApiStickersResponseDto> searchStickers({
+    required String search,
+    required int page,
+    required int limit,
+  });
 }

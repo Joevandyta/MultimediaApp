@@ -15,7 +15,6 @@ class StickerModel {
   @Backlink(to: 'stickers')
   final pack = IsarLink<StickerPack>();
 
-  
   StickerModel({
     required this.savedStickerId,
     required this.imagePath,
