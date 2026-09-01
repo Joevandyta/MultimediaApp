@@ -15,7 +15,6 @@ class PacksScreen extends ConsumerStatefulWidget {
 
 class _PacksScreenState extends ConsumerState<PacksScreen> {
   int? _sharingPackId;
-  
 
   void _showSuccessSnack(String msg) {
     if (!mounted) return;
@@ -250,11 +249,12 @@ class _PacksScreenState extends ConsumerState<PacksScreen> {
                         ? Image.file(
                             File(pack.trayImagePath),
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.collections_bookmark_rounded,
-                              size: 40,
-                              color: Color(0xFF25D366),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.collections_bookmark_rounded,
+                                  size: 40,
+                                  color: Color(0xFF25D366),
+                                ),
                           )
                         : const Icon(
                             Icons.collections_bookmark_rounded,

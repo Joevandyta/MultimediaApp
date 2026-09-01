@@ -75,7 +75,10 @@ class _SavedStickersScreenState extends ConsumerState<SavedStickersScreen> {
         final sticker = savedStickers[index];
         return GestureDetector(
           onTap: () {
-            context.push('/packs/new/stickers/${sticker.savedStickerId}', extra: sticker);
+            context.push(
+              '/packs/new/stickers/${sticker.savedStickerId}',
+              extra: sticker,
+            );
           },
           onLongPress: () {
             showDialog(

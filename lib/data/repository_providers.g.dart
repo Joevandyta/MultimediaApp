@@ -81,6 +81,54 @@ final class LocalDataSourceProvider
 
 String _$localDataSourceHash() => r'6255125432db890baeb92f64e1ffc02f9ede0b2a';
 
+@ProviderFor(remoteStickerDataSource)
+final remoteStickerDataSourceProvider = RemoteStickerDataSourceProvider._();
+
+final class RemoteStickerDataSourceProvider
+    extends
+        $FunctionalProvider<
+          RemoteStickerDataSource,
+          RemoteStickerDataSource,
+          RemoteStickerDataSource
+        >
+    with $Provider<RemoteStickerDataSource> {
+  RemoteStickerDataSourceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'remoteStickerDataSourceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$remoteStickerDataSourceHash();
+
+  @$internal
+  @override
+  $ProviderElement<RemoteStickerDataSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  RemoteStickerDataSource create(Ref ref) {
+    return remoteStickerDataSource(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RemoteStickerDataSource value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RemoteStickerDataSource>(value),
+    );
+  }
+}
+
+String _$remoteStickerDataSourceHash() =>
+    r'22d48de0c49bb92498d95a9183ceafa0ce96a202';
+
 @ProviderFor(stickerRepository)
 final stickerRepositoryProvider = StickerRepositoryProvider._();
 
@@ -120,7 +168,7 @@ final class StickerRepositoryProvider
   }
 }
 
-String _$stickerRepositoryHash() => r'9f70102916e8eb1e65a517cd3307f5c547c34962';
+String _$stickerRepositoryHash() => r'8f5af46a0d1bce0b218c20a645c04feec77e86b4';
 
 @ProviderFor(stickerUseCase)
 final stickerUseCaseProvider = StickerUseCaseProvider._();

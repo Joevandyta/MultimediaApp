@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:multimedia_sticker_maker/data/models/remote/api_stickers_response_dto.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_model.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
 import 'package:multimedia_sticker_maker/domain/repositories/sticker_repository.dart';
@@ -101,5 +102,14 @@ class StickerUseCaseImpl implements StickerUseCase {
     required int packId,
   }) {
     return repository.getAllStickersInStickerPack(packId: packId);
+  }
+
+  @override
+  Future<ApiStickersResponseDto> searchStickers({
+    required String search,
+    required int page,
+    required int limit,
+  }) {
+    return repository.searchStickers(search: search, page: page, limit: limit);
   }
 }

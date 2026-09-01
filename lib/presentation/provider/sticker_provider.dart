@@ -24,21 +24,21 @@ class SavedStickers extends _$SavedStickers {
   Future<StickerModel> saveNewSticker(Uint8List bytes, String extension) async {
     final usecase = await ref.read(stickerUseCaseProvider.future);
     final sticker = await usecase.saveSticker(bytes, extension);
-    if (ref.mounted) ref.invalidateSelf(); 
+    if (ref.mounted) ref.invalidateSelf();
     return sticker;
   }
 
   Future<void> updateSticker(String savedStickerId, Uint8List bytes) async {
     final usecase = await ref.read(stickerUseCaseProvider.future);
     await usecase.updateSticker(savedStickerId, bytes);
-    if (ref.mounted) ref.invalidateSelf(); 
+    if (ref.mounted) ref.invalidateSelf();
   }
 
   Future<void> removeSticker(String savedStickerId) async {
     final usecase = await ref.read(stickerUseCaseProvider.future);
 
     await usecase.deleteSticker(savedStickerId);
-    if (ref.mounted) ref.invalidateSelf(); 
+    if (ref.mounted) ref.invalidateSelf();
   }
 }
 

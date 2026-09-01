@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multimedia_sticker_maker/core/constants/constants.dart';
+import 'package:multimedia_sticker_maker/presentation/screen/packs/packs_screen.dart';
+import 'package:multimedia_sticker_maker/presentation/screen/sticker/explore_stickers_screen.dart';
+import 'package:multimedia_sticker_maker/presentation/screen/sticker/saved_stickers_screen.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import 'home/home_screen.dart';
 import 'setting/settings_screen.dart';
@@ -30,14 +33,32 @@ class _MainNavigationState extends State<MainNavigation> {
           screen: const HomeScreen(),
           item: ItemConfig(
             icon: const Icon(Icons.home_rounded),
-            title: 'Beranda',
+            inactiveIcon: const Icon(Icons.home_outlined),
+            title: 'Home',
+          ),
+        ),
+        PersistentTabConfig(
+          screen: const ExploreStickersScreen(),
+          item: ItemConfig(
+            icon: const Icon(Icons.explore_rounded),
+            inactiveIcon: const Icon(Icons.explore_outlined),
+            title: 'Explore',
+          ),
+        ),
+        PersistentTabConfig(
+          screen: const PacksScreen(),
+          item: ItemConfig(
+            icon: const Icon(Icons.collections_bookmark_rounded),
+            inactiveIcon: const Icon(Icons.collections_bookmark_outlined),
+            title: 'Packs',
           ),
         ),
         PersistentTabConfig(
           screen: const SettingsScreen(),
           item: ItemConfig(
             icon: const Icon(Icons.settings_rounded),
-            title: 'Pengaturan',
+            inactiveIcon: const Icon(Icons.settings_outlined),
+            title: 'Setting',
           ),
         ),
       ],
@@ -55,7 +76,14 @@ class CustomNotchedNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Total height of the navbar area is 130 to fully enclose the FAB and margins without clipping.
+    // Total height of the navbar area is 130 to fully enclose the FAB and margins.
+    final items = navBarConfig.items;
+    final half = items.length ~/ 2;
+    final leftItems = items.sublist(0, half);
+    final rightItems = items.sublist(half);
+    final leftIndices = List.generate(half, (i) => i);
+    final rightIndices = List.generate(rightItems.length, (i) => half + i);
+
     return SafeArea(
       top: false,
       child: Container(
@@ -90,17 +118,38 @@ class CustomNotchedNavBar extends StatelessWidget {
                       color: Colors.transparent,
                       child: Row(
                         children: [
-                          for (final (index, item)
-                              in navBarConfig.items.indexed)
-                            Expanded(
+                          // Left tabs
+                          ...leftItems.indexed.map(
+                            (entry) => Expanded(
                               child: InkWell(
-                                onTap: () => navBarConfig.onItemSelected(index),
+                                onTap: () => navBarConfig.onItemSelected(
+                                  leftIndices[entry.$1],
+                                ),
                                 child: _buildNavItem(
-                                  item,
-                                  navBarConfig.selectedIndex == index,
+                                  entry.$2,
+                                  navBarConfig.selectedIndex ==
+                                      leftIndices[entry.$1],
                                 ),
                               ),
                             ),
+                          ),
+                          // Center gap for FAB notch
+                          const SizedBox(width: 72),
+                          // Right tabs
+                          ...rightItems.indexed.map(
+                            (entry) => Expanded(
+                              child: InkWell(
+                                onTap: () => navBarConfig.onItemSelected(
+                                  rightIndices[entry.$1],
+                                ),
+                                child: _buildNavItem(
+                                  entry.$2,
+                                  navBarConfig.selectedIndex ==
+                                      rightIndices[entry.$1],
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
