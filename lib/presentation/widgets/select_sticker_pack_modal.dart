@@ -317,8 +317,7 @@ class _SelectStickerPackModalState
       final trayPath = await ref
           .read(stickerPackProviderProvider.notifier)
           .saveImageTray(trayBytes);
-      final identifier =
-          'multimedia_sticker_maker_${DateTime.now().millisecondsSinceEpoch}';
+      final identifier = 'stickerify_${DateTime.now().millisecondsSinceEpoch}';
 
       final newPack = StickerPack(
         identifier: identifier,

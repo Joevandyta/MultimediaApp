@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:multimedia_sticker_maker/core/constants/constants.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/packs/packs_screen.dart';
 import 'package:multimedia_sticker_maker/presentation/screen/sticker/explore_stickers_screen.dart';
-import 'package:multimedia_sticker_maker/presentation/screen/sticker/saved_stickers_screen.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import 'home/home_screen.dart';
 import 'setting/settings_screen.dart';

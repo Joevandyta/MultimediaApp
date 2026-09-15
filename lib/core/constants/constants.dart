@@ -39,3 +39,29 @@ abstract class AppRoutes {
   static const addSticker = '/addsticker';
   static const addStickerName = 'addSticker';
 }
+
+
+const stickersTemplate = {
+  '01_Cuppy_smile.webp': ['☕', '🙂'],
+  '02_Cuppy_lol.webp': ['😄', '😀'],
+  '03_Cuppy_rofl.webp': ['😆', '😂'],
+  '04_Cuppy_sad.webp': ['😃', '😍'],
+  '05_Cuppy_cry.webp': ['😭', '💧'],
+  '06_Cuppy_love.webp': ['😍', '♥'],
+  '07_Cuppy_hate.webp': ['💔', '👎'],
+  '08_Cuppy_lovewithmug.webp': ['😍', '💑'],
+  '09_Cuppy_lovewithcookie.webp': ['😘', '🍪'],
+  '10_Cuppy_hmm.webp': ['🤔', '😐'],
+  '11_Cuppy_upset.webp': ['😱', '😵'],
+  '12_Cuppy_angry.webp': ['😡', '😠'],
+  '13_Cuppy_curious.webp': ['❓', '🤔'],
+  '14_Cuppy_weird.webp': ['🌈', '😜'],
+  '15_Cuppy_bluescreen.webp': ['💻', '😩'],
+  '16_Cuppy_angry.webp': ['😡', '😤'],
+  '17_Cuppy_tired.webp': ['😩', '😨'],
+  '18_Cuppy_workhard.webp': ['😔', '😨'],
+  '19_Cuppy_shine.webp': ['🎉', '✨'],
+  '20_Cuppy_disgusting.webp': ['🤮', '👎'],
+  '21_Cuppy_hi.webp': ['🖐', '🙋'],
+  '22_Cuppy_bye.webp': ['🖐', '👋'],
+};

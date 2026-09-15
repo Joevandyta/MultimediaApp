@@ -1,4 +1,3 @@
-import 'dart:ffi';
 import 'dart:typed_data';
 import 'package:multimedia_sticker_maker/core/services/Image_file.dart';
 import 'package:multimedia_sticker_maker/data/models/sticker_pack.dart';
@@ -48,8 +47,9 @@ class LocalDataSource {
 
   Future<StickerModel> updateSticker(
     String savedStickerId,
-    Uint8List newBytes,
-  ) async {
+    Uint8List newBytes, {
+    List<String>? emojis,
+  }) async {
     try {
       final existing = await isar.stickerModels
           .filter()
@@ -70,6 +70,7 @@ class LocalDataSource {
         savedStickerId: savedStickerId,
         imagePath: newPath,
         createdAt: existing.createdAt,
+        emojis: emojis ?? existing.emojis,
       )..isarId = existing.isarId;
 
       await isar.writeTxn(() async {
@@ -118,6 +119,11 @@ class LocalDataSource {
   }) async {
     try {
       final savedNewSticker = await saveSticker(imageBytes, extension);
+      savedNewSticker.emojis = emoji;
+      await isar.writeTxn(() async {
+        await isar.stickerModels.put(savedNewSticker);
+      });
+
       final stickerPack = await getStickerPackById(packId);
       if (stickerPack == null) {
         throw Exception("Sticker pack not found");
@@ -140,23 +146,33 @@ class LocalDataSource {
     required String savedStickerId,
   }) async {
     try {
-      final updatedSticker = await updateSticker(savedStickerId, newImageBytes);
       final sticker = await getStickerById(savedStickerId);
-      if (sticker != null) {
+      if (sticker == null) {
         throw Exception("Sticker not found");
       }
+      final updatedSticker = await updateSticker(
+        savedStickerId,
+        newImageBytes,
+        emojis: emoji,
+      );
       final stickerPack = await getStickerPackById(packId);
       if (stickerPack == null) {
         throw Exception("Sticker pack not found");
       }
-      stickerPack.removeSticker(sticker!);
-      stickerPack.addSticker(updatedSticker, emoji);
+
+      // Ensure updatedSticker is present in stickerPack.stickers
+      final alreadyLinked = stickerPack.stickers.any(
+        (s) => s.savedStickerId == updatedSticker.savedStickerId,
+      );
+      if (!alreadyLinked) {
+        stickerPack.stickers.add(updatedSticker);
+      }
       stickerPack.lastEdited = DateTime.now();
       await saveStickerPack(stickerPack);
 
       return updatedSticker.savedStickerId;
     } catch (e) {
-      print("Error adding sticker to pack: $e");
+      print("Error updating sticker in pack: $e");
       throw Exception("cant add new sticker to pack ${e.toString()}");
     }
   }
@@ -173,7 +189,7 @@ class LocalDataSource {
       if (sticker == null) {
         throw Exception("Sticker not found");
       }
-      deleteSticker(savedStickerId);
+      await deleteSticker(savedStickerId);
       stickerPack.lastEdited = DateTime.now();
       stickerPack.removeSticker(sticker);
       await saveStickerPack(stickerPack);

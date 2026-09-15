@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -61,7 +62,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.restore_rounded,
                     title: 'Pulihkan Stiker',
                     subtitle: 'Kembalikan dari cadangan sebelumnya',
-                    onTap: () => _showTodoToast('Pulihkan Stiker'),
+                    onTap: () => {
+                      _showTodoToast('Pulihkan Stiker')
+                    },
                   ),
                   const SizedBox(height: 24),
                   _settingsGroupHeader('Bantuan & Tentang'),

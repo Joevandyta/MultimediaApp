@@ -13,6 +13,7 @@ void showStickerPackModal({
 }) {
   showModalBottomSheet(
     context: context,
+    useRootNavigator: true,
     backgroundColor: const Color(0xFF111A16),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

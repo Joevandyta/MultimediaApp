@@ -47,7 +47,7 @@ final class ExploreStickersProvider
   }
 }
 
-String _$exploreStickersHash() => r'64566ae4b9928205efc6f1e4d8d7bd306d2d1094';
+String _$exploreStickersHash() => r'75bb5c8adda99fa62835db62ba8572bbd630c6c8';
 
 /// Riverpod notifier that manages explore sticker state with
 /// search (debounced) and Next/Previous pagination.

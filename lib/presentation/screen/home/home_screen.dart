@@ -452,7 +452,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildStickerItem(StickerModel sticker) {
-    debugPrint("image stickerpath ${sticker.imagePath}");
     return Container(
       width: 100,
       height: 100,

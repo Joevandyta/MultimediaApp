@@ -23,16 +23,13 @@ class FileServices {
     return filePath;
   }
 
-  Future<String> temporaryWebp(
-    String originalPath,
-    String savedStickerId,
-  ) async {
+  Future<XFile> temporaryWebp(String originalPath, String id) async {
     final appDir = await getTemporaryDirectory();
 
     final tempDirectory = Directory('${appDir.path}/stickers');
     await tempDirectory.create(recursive: true);
 
-    final String tempFilePath = '${tempDirectory.path}/$savedStickerId.webp';
+    final String tempFilePath = '${tempDirectory.path}/tempwebp-$id.webp';
 
     final bytes = await File(originalPath).readAsBytes();
 
@@ -45,14 +42,14 @@ class FileServices {
         ? decoded.width
         : decoded.height;
 
-    final padded = img.Image(width: size, height: size);
+    final padded = img.Image(width: size, height: size, numChannels: 4);
 
     final offsetX = (size - decoded.width) ~/ 2;
     final offsetY = (size - decoded.height) ~/ 2;
 
     img.compositeImage(padded, decoded, dstX: offsetX, dstY: offsetY);
 
-    final tempPng = File('${tempDirectory.path}/$savedStickerId-temp.png');
+    final tempPng = File('${tempDirectory.path}/$id-temp.png');
     await tempPng.writeAsBytes(img.encodePng(padded));
 
     final compressed = await FlutterImageCompress.compressAndGetFile(
@@ -69,7 +66,7 @@ class FileServices {
     if (compressed == null) {
       throw Exception('Failed to create webp');
     }
-    return compressed.path;
+    return compressed;
   }
 
   Future<Uint8List> readImageBytes(String filePath) async {

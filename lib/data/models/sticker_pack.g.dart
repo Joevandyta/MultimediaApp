@@ -48,13 +48,8 @@ const StickerPackSchema = CollectionSchema(
       name: r'publisherWebsite',
       type: IsarType.string,
     ),
-    r'stickerEmojis': PropertySchema(
-      id: 7,
-      name: r'stickerEmojis',
-      type: IsarType.stringList,
-    ),
     r'trayImagePath': PropertySchema(
-      id: 8,
+      id: 7,
       name: r'trayImagePath',
       type: IsarType.string,
     ),
@@ -109,13 +104,6 @@ int _stickerPackEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
-  bytesCount += 3 + object.stickerEmojis.length * 3;
-  {
-    for (var i = 0; i < object.stickerEmojis.length; i++) {
-      final value = object.stickerEmojis[i];
-      bytesCount += value.length * 3;
-    }
-  }
   bytesCount += 3 + object.trayImagePath.length * 3;
   return bytesCount;
 }
@@ -133,8 +121,7 @@ void _stickerPackSerialize(
   writer.writeString(offsets[4], object.privacyPolicyWebsite);
   writer.writeString(offsets[5], object.publisher);
   writer.writeString(offsets[6], object.publisherWebsite);
-  writer.writeStringList(offsets[7], object.stickerEmojis);
-  writer.writeString(offsets[8], object.trayImagePath);
+  writer.writeString(offsets[7], object.trayImagePath);
 }
 
 StickerPack _stickerPackDeserialize(
@@ -151,10 +138,9 @@ StickerPack _stickerPackDeserialize(
     privacyPolicyWebsite: reader.readStringOrNull(offsets[4]),
     publisher: reader.readString(offsets[5]),
     publisherWebsite: reader.readStringOrNull(offsets[6]),
-    trayImagePath: reader.readString(offsets[8]),
+    trayImagePath: reader.readString(offsets[7]),
   );
   object.isarId = id;
-  object.stickerEmojis = reader.readStringList(offsets[7]) ?? [];
   return object;
 }
 
@@ -180,8 +166,6 @@ P _stickerPackDeserializeProp<P>(
     case 6:
       return (reader.readStringOrNull(offset)) as P;
     case 7:
-      return (reader.readStringList(offset) ?? []) as P;
-    case 8:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1326,200 +1310,6 @@ extension StickerPackQueryFilter
   }
 
   QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementEqualTo(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'stickerEmojis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'stickerEmojis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'stickerEmojis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'stickerEmojis',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementStartsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'stickerEmojis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementEndsWith(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'stickerEmojis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'stickerEmojis',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'stickerEmojis',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'stickerEmojis', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisElementIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'stickerEmojis', value: ''),
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisLengthEqualTo(int length) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'stickerEmojis', length, true, length, true);
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'stickerEmojis', 0, true, 0, true);
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'stickerEmojis', 0, false, 999999, true);
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisLengthLessThan(int length, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'stickerEmojis', 0, true, length, include);
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisLengthGreaterThan(int length, {bool include = false}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(r'stickerEmojis', length, include, 999999, true);
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
-  stickerEmojisLengthBetween(
-    int lower,
-    int upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.listLength(
-        r'stickerEmojis',
-        lower,
-        includeLower,
-        upper,
-        includeUpper,
-      );
-    });
-  }
-
-  QueryBuilder<StickerPack, StickerPack, QAfterFilterCondition>
   trayImagePathEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -2015,12 +1805,6 @@ extension StickerPackQueryWhereDistinct
     });
   }
 
-  QueryBuilder<StickerPack, StickerPack, QDistinct> distinctByStickerEmojis() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'stickerEmojis');
-    });
-  }
-
   QueryBuilder<StickerPack, StickerPack, QDistinct> distinctByTrayImagePath({
     bool caseSensitive = true,
   }) {
@@ -2083,13 +1867,6 @@ extension StickerPackQueryProperty
   publisherWebsiteProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'publisherWebsite');
-    });
-  }
-
-  QueryBuilder<StickerPack, List<String>, QQueryOperations>
-  stickerEmojisProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'stickerEmojis');
     });
   }
 

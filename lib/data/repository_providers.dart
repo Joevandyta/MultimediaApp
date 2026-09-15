@@ -19,11 +19,13 @@ Future<Isar> isar(Ref ref) async {
   if (Isar.instanceNames.contains('db')) {
     return Isar.getInstance('db')!;
   }
-  return await Isar.open(
+  final isar = await Isar.open(
     [StickerModelSchema, StickerPackSchema],
     directory: dir.path,
     name: 'db',
   );
+
+  return isar;
 }
 
 @riverpod

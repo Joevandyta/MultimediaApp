@@ -40,7 +40,7 @@ final class IsarProvider
   }
 }
 
-String _$isarHash() => r'd71fe5f2ac244c78f67f4ad708e15a5c98171281';
+String _$isarHash() => r'300fa0c241efa7fff517ad5db08162fa76266995';
 
 @ProviderFor(localDataSource)
 final localDataSourceProvider = LocalDataSourceProvider._();

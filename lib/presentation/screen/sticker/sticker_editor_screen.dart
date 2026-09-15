@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -88,7 +89,6 @@ class _StickerEditorScreenState extends ConsumerState<StickerEditorScreen>
       return; // sticker mungkin sudah dihapus / tidak ditemukan
     }
     if (!mounted) return; // guard lagi setelah async gap kedua
-
     setState(() {
       _selectedImages = File(sticker.imagePath);
       _targetStickerPack = pack;
